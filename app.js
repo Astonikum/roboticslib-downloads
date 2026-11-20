@@ -57,7 +57,9 @@ async function save(folder) {
   } finally { busy = false; }
 }
 $('unlock-form').addEventListener('submit', async event => {
-  event.preventDefault(); $('unlock').disabled = true; $('status').textContent = 'Открываю библиотеку…';
+  event.preventDefault();
+  if ($('password').disabled) return;
+  $('password').disabled = true; $('status').textContent = 'Открываю…';
   try {
     if (!globalThis.crypto?.subtle) throw new Error('Для открытия нужен современный браузер и HTTPS.');
     const config = await (await get('config.json')).json();
@@ -69,7 +71,7 @@ $('unlock-form').addEventListener('submit', async event => {
     render(); $('login').hidden = true; $('library').hidden = false; $('status').textContent = ''; $('download-all').focus();
   } catch (error) {
     $('status').textContent = error.name === 'OperationError' ? 'Неверный пароль или сайт обновляется. Проверь пароль и попробуй ещё раз.' : error.message;
-  } finally { $('unlock').disabled = false; }
+  } finally { $('password').disabled = false; }
 });
 $('download-all').onclick = () => save(catalog.folders.find(folder => folder.path === ''));
 $('download-current').onclick = () => save(catalog.folders.find(folder => folder.path === current));
