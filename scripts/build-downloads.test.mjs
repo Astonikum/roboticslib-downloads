@@ -21,11 +21,16 @@ test('only committed files are archived; catalog and nested ZIPs require the pas
     git('add', '.'); git('commit', '-m', 'fixture');
     writeFileSync('untracked-secret.txt', 'DO NOT INCLUDE');
     mkdirSync('runner/site', { recursive: true });
-    writeFileSync('runner/site/index.html', 'public shell');
+    writeFileSync('runner/site/index.html', '<script src="app.js"></script><link href="style.css">');
+    writeFileSync('runner/site/app.js', 'console.log("fixture")');
+    writeFileSync('runner/site/style.css', 'body { color: gray }');
     process.chdir(join(root, 'runner'));
     assert.throws(() => build('weak'), /12 characters/);
     const password = 'test-only-password-123456789';
     const manifest = build(password, 'dist', root);
+    const html = readFileSync('dist/index.html', 'utf8');
+    assert.match(html, /app\.js\?v=[a-f0-9]{12}/);
+    assert.match(html, /style\.css\?v=[a-f0-9]{12}/);
     const config = JSON.parse(readFileSync('dist/config.json'));
     const key = pbkdf2Sync(password, Buffer.from(config.salt, 'base64'), config.iterations, 32, 'sha256');
     const decrypt = (file, secret = key) => {

@@ -1,6 +1,6 @@
-import { createCipheriv, pbkdf2Sync, randomBytes, randomUUID } from 'node:crypto';
+import { createCipheriv, createHash, pbkdf2Sync, randomBytes, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, rmSync, writeFileSync, cpSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync, cpSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 export function encrypt(bytes, key) {
@@ -27,6 +27,12 @@ export function build(password, output = 'dist', repository = process.env.SOURCE
   rmSync(destination, { recursive: true, force: true });
   mkdirSync(`${destination}/data`, { recursive: true });
   cpSync('site', destination, { recursive: true });
+  let html = readFileSync(`${destination}/index.html`, 'utf8');
+  for (const asset of ['app.js', 'style.css']) {
+    const version = createHash('sha256').update(readFileSync(`${destination}/${asset}`)).digest('hex').slice(0, 12);
+    html = html.replaceAll(`"${asset}"`, `"${asset}?v=${version}"`);
+  }
+  writeFileSync(`${destination}/index.html`, html);
   const folders = [...paths].sort().map(path => {
     const name = path ? path.split('/').at(-1) : 'roboticslib';
     const archive = git('archive', '--format=zip', `--prefix=${name}/`, path ? `HEAD:${path}` : 'HEAD');
