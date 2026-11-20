@@ -1,0 +1,47 @@
+:root {
+  font-family: Arial, sans-serif;
+  color: #ddd;
+  background: #333;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+main {
+  width: min(100%, 900px);
+  min-height: 100svh;
+  margin: auto;
+  padding: 32px 24px;
+  display: grid;
+  align-content: center;
+}
+main:has(#library:not([hidden])) { align-content: start; }
+#unlock-form { width: min(100%, 300px); margin: auto; }
+input, button { font: inherit; font-size: 16px; border: 1px solid #777; border-radius: 3px; }
+input { width: 100%; padding: 12px; background: #3b3b3b; color: #eee; }
+input::placeholder { color: #bbb; }
+button { padding: 9px 12px; background: #444; color: #eee; cursor: pointer; }
+button:hover { background: #505050; }
+input:focus-visible, button:focus-visible { outline: 2px solid #bbb; outline-offset: 3px; }
+input:disabled { opacity: .6; }
+h1 { margin: 0; font-size: 24px; font-weight: 400; }
+.heading, .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.toolbar { flex-wrap: wrap; }
+#revision, .list-head, .folder-details small { color: #bbb; font-size: 14px; }
+.browser { border: 1px solid #666; padding-bottom: 16px; }
+nav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 12px; border-bottom: 1px solid #666; }
+nav button { background: none; border: 0; padding: 5px; overflow-wrap: anywhere; }
+.list-head { display: flex; justify-content: space-between; padding: 16px; }
+.folder { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #555; }
+.folder-open { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding: 0; border: 0; background: none; text-align: left; overflow-wrap: anywhere; }
+.folder-open:hover { background: none; text-decoration: underline; }
+.folder-icon { font-size: 24px; }
+.folder-details { display: flex; flex-direction: column; gap: 5px; }
+.download { flex-shrink: 0; font-size: 14px; }
+#download-current { margin: 16px 16px 0; }
+#empty { margin: 16px; line-height: 1.5; }
+#status { margin: 16px 0 0; font-size: 14px; text-align: center; line-height: 1.5; }
+#status:empty, [hidden] { display: none !important; }
+@media (max-width: 480px) {
+  .folder { padding: 12px; gap: 8px; }
+  .download { padding: 8px; }
+}

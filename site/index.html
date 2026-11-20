@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="robots" content="noindex,nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>roboticslib — архив проектов</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <main>
+    <section id="login">
+      <form id="unlock-form">
+        <input id="password" type="password" autocomplete="current-password" required placeholder="Пароль" aria-label="Пароль" autofocus>
+      </form>
+    </section>
+    <section id="library" hidden>
+      <div class="heading"><h1>Файлы</h1><button id="lock">Выйти</button></div>
+      <div class="toolbar"><button id="download-all">Скачать всё · ZIP</button><span id="revision"></span></div>
+      <div class="browser"><nav id="breadcrumbs" aria-label="Путь к папке"></nav><div class="list-head"><span>Папка</span><span>Архив</span></div><div id="folders"></div><p id="empty" hidden>Вложенных папок нет. Можно скачать текущую папку целиком.</p><button id="download-current" class="secondary">Скачать эту папку</button></div>
+    </section>
+    <p id="status" role="status" aria-live="polite"></p>
+  </main>
+</body>
+</html>
