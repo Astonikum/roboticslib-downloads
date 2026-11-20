@@ -41,6 +41,7 @@ nav button { background: none; border: 0; padding: 5px; overflow-wrap: anywhere;
 #empty { margin: 16px; line-height: 1.5; }
 #status { margin: 16px 0 0; font-size: 14px; text-align: center; line-height: 1.5; }
 #status:empty, [hidden] { display: none !important; }
+#save-zip { color: #eee; text-align: center; margin-top: 12px; }
 @media (max-width: 480px) {
   .folder { padding: 12px; gap: 8px; }
   .download { padding: 8px; }
