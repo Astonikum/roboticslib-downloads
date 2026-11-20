@@ -1,14 +1,35 @@
 const $ = id => document.getElementById(id);
-let key, catalog, current = '', busy = false, generation = 0;
+let key, catalog, current = '', busy = false, generation = 0, downloadUrl;
 const sizes = bytes => bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} КБ` : `${(bytes / 1024 / 1024).toFixed(1)} МБ`;
 async function get(path) {
-  const response = await fetch(path, { cache: 'no-store' });
+  const response = await fetch(path, { cache: 'no-store', signal: AbortSignal.timeout(120_000) });
   if (!response.ok) throw new Error(`Не удалось загрузить архив (${response.status}). Попробуй обновить страницу.`);
   return response;
 }
-async function decrypt(path, cryptoKey) {
-  const data = await (await get(path)).arrayBuffer();
+async function decrypt(path, cryptoKey, onProgress) {
+  const response = await get(path);
+  let data;
+  if (onProgress && response.body) {
+    const reader = response.body.getReader();
+    const chunks = [];
+    let loaded = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value); loaded += value.length; onProgress(loaded);
+    }
+    const bytes = new Uint8Array(loaded);
+    let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
+    data = bytes.buffer;
+  } else data = await response.arrayBuffer();
   return crypto.subtle.decrypt({ name: 'AES-GCM', iv: data.slice(0, 12) }, cryptoKey, data.slice(12));
+}
+function clearDownload() {
+  if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+  downloadUrl = undefined;
+  $('save-zip').hidden = true;
+  $('save-zip').removeAttribute('href');
 }
 function render() {
   $('breadcrumbs').replaceChildren();
@@ -43,17 +64,19 @@ async function save(folder) {
   if (busy || !key) return;
   busy = true;
   const session = generation;
-  $('status').textContent = `Подготавливаю ${folder.name}.zip…`;
+  clearDownload();
+  $('status').textContent = `Загружаю ${folder.name}.zip: 0 / ${sizes(folder.bytes)}`;
   try {
-    const bytes = await decrypt(`data/${folder.id}`, key);
+    const bytes = await decrypt(`data/${folder.id}`, key, loaded => {
+      if (session === generation) $('status').textContent = `Загружаю ${folder.name}.zip: ${sizes(Math.min(loaded, folder.bytes))} / ${sizes(folder.bytes)}`;
+    });
     if (session !== generation) return;
-    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/zip' }));
-    const link = document.createElement('a'); link.href = url; link.download = `${folder.name}.zip`;
-    document.body.append(link); link.click(); link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    $('status').textContent = 'Архив готов. Скачивание началось.';
+    downloadUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/zip' }));
+    const link = $('save-zip'); link.href = downloadUrl; link.download = `${folder.name}.zip`;
+    link.hidden = false; link.click();
+    $('status').textContent = 'Архив готов. Если скачивание не началось, нажми «Сохранить ZIP».';
   } catch (error) {
-    if (session === generation) $('status').textContent = error.name === 'OperationError' ? 'Архив обновился или повреждён. Выйди и введи пароль снова.' : error.message;
+    if (session === generation) $('status').textContent = error.name === 'TimeoutError' ? 'Загрузка заняла слишком долго. Попробуй скачать ещё раз.' : error.name === 'OperationError' ? 'Архив обновился или повреждён. Выйди и введи пароль снова.' : error.message;
   } finally { busy = false; }
 }
 $('unlock-form').addEventListener('submit', async event => {
@@ -77,6 +100,7 @@ $('download-all').onclick = () => save(catalog.folders.find(folder => folder.pat
 $('download-current').onclick = () => save(catalog.folders.find(folder => folder.path === current));
 $('lock').onclick = () => {
   generation++; key = null; catalog = null; current = '';
+  clearDownload();
   $('folders').replaceChildren(); $('breadcrumbs').replaceChildren(); $('revision').textContent = '';
   $('library').hidden = true; $('login').hidden = false; $('status').textContent = ''; $('password').focus();
 };
