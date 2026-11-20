@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="robots" content="noindex,nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>roboticslib — архив проектов</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header><a class="brand" href="./"><span class="logo" aria-hidden="true">r.</span> roboticslib<span class="tag">ARCHIVE</span></a><span class="private">Закрытая библиотека</span></header>
+  <main>
+    <section id="login">
+      <div class="eyebrow">РОБОТОТЕХНИКА / 2026–2027</div>
+      <h1>Всё для<br>следующего <span>запуска.</span></h1>
+      <p class="intro">Код, схемы и материалы проектов.<br>Введи пароль, чтобы открыть библиотеку.</p>
+      <form id="unlock-form">
+        <label for="password">Пароль доступа</label>
+        <div class="password-row"><input id="password" type="password" autocomplete="current-password" required placeholder="Введи пароль"><button id="unlock" type="submit">Открыть</button></div>
+      </form>
+      <p class="hint">Архивы зашифрованы. Пароль остаётся в твоём браузере.</p>
+    </section>
+    <section id="library" hidden>
+      <div class="eyebrow">БИБЛИОТЕКА ПРОЕКТОВ</div>
+      <div class="heading"><h1>Готово к <span>запуску.</span></h1><button id="lock" class="secondary">Выйти</button></div>
+      <p class="intro">Скачай весь репозиторий или выбери нужную папку.</p>
+      <div class="toolbar"><button id="download-all">Скачать всё · ZIP</button><span id="revision"></span></div>
+      <div class="browser"><nav id="breadcrumbs" aria-label="Путь к папке"></nav><div class="list-head"><span>Папка</span><span>Архив</span></div><div id="folders"></div><p id="empty" hidden>Вложенных папок нет. Можно скачать текущую папку целиком.</p><button id="download-current" class="secondary">Скачать эту папку</button></div>
+    </section>
+    <p id="status" role="status" aria-live="polite"></p>
+  </main>
+  <footer><span>roboticslib / project archive</span><span>Собирай. Проверяй. Запускай.</span></footer>
+</body>
+</html>
