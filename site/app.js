@@ -1,28 +1,42 @@
 const $ = id => document.getElementById(id);
 let key, catalog, current = '', busy = false, generation = 0, downloadUrl;
 const sizes = bytes => bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} КБ` : `${(bytes / 1024 / 1024).toFixed(1)} МБ`;
-async function get(path) {
-  const response = await fetch(path, { cache: 'no-store', signal: AbortSignal.timeout(120_000) });
+async function get(path, signal = AbortSignal.timeout(30_000)) {
+  const response = await fetch(path, { cache: path === 'config.json' || path === 'data/catalog.bin' ? 'no-store' : 'default', signal });
   if (!response.ok) throw new Error(`Не удалось загрузить архив (${response.status}). Попробуй обновить страницу.`);
   return response;
 }
 async function decrypt(path, cryptoKey, onProgress) {
-  const response = await get(path);
+  const controller = new AbortController();
+  let timer;
+  const resetTimeout = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => controller.abort(new DOMException('No download progress', 'TimeoutError')), 60_000);
+  };
   let data;
-  if (onProgress && response.body) {
-    const reader = response.body.getReader();
-    const chunks = [];
-    let loaded = 0;
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value); loaded += value.length; onProgress(loaded);
-    }
-    const bytes = new Uint8Array(loaded);
-    let offset = 0;
-    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
-    data = bytes.buffer;
-  } else data = await response.arrayBuffer();
+  resetTimeout();
+  try {
+    const response = await get(path, controller.signal);
+    if (response.body) {
+      const reader = response.body.getReader();
+      const chunks = [];
+      let loaded = 0;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          resetTimeout();
+          chunks.push(value); loaded += value.length; onProgress?.(loaded);
+        }
+      } finally { reader.releaseLock(); }
+      const bytes = new Uint8Array(loaded);
+      let offset = 0;
+      for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
+      data = bytes.buffer;
+    } else data = await response.arrayBuffer();
+  } catch (error) {
+    throw controller.signal.aborted ? controller.signal.reason : error;
+  } finally { clearTimeout(timer); }
   return crypto.subtle.decrypt({ name: 'AES-GCM', iv: data.slice(0, 12) }, cryptoKey, data.slice(12));
 }
 function clearDownload() {
@@ -76,7 +90,7 @@ async function save(folder) {
     link.hidden = false; link.click();
     $('status').textContent = 'Архив готов. Если скачивание не началось, нажми «Сохранить ZIP».';
   } catch (error) {
-    if (session === generation) $('status').textContent = error.name === 'TimeoutError' ? 'Загрузка заняла слишком долго. Попробуй скачать ещё раз.' : error.name === 'OperationError' ? 'Архив обновился или повреждён. Выйди и введи пароль снова.' : error.message;
+    if (session === generation) $('status').textContent = error.name === 'TimeoutError' ? 'Загрузка заняла слишком долго. Попробуй скачать ещё раз.' : error.name === 'OperationError' ? 'Архив обновился или повреждён. Выйди и введи пароль снова.' : error.name === 'AbortError' ? 'Соединение прервалось. Попробуй скачать ещё раз.' : error.message;
   } finally { busy = false; }
 }
 $('unlock-form').addEventListener('submit', async event => {
@@ -93,7 +107,7 @@ $('unlock-form').addEventListener('submit', async event => {
     $('revision').textContent = `Коммит ${catalog.commit} · ${new Date(catalog.built).toLocaleDateString('ru-RU')}`;
     render(); $('login').hidden = true; $('library').hidden = false; $('status').textContent = ''; $('download-all').focus();
   } catch (error) {
-    $('status').textContent = error.name === 'OperationError' ? 'Неверный пароль или сайт обновляется. Проверь пароль и попробуй ещё раз.' : error.message;
+    $('status').textContent = error.name === 'OperationError' ? 'Неверный пароль или сайт обновляется. Проверь пароль и попробуй ещё раз.' : error.name === 'AbortError' ? 'Соединение прервалось. Попробуй скачать ещё раз.' : error.message;
   } finally { $('password').disabled = false; }
 });
 $('download-all').onclick = () => save(catalog.folders.find(folder => folder.path === ''));

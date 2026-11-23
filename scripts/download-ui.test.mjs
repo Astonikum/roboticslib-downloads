@@ -23,7 +23,7 @@ test('download progress, manual save, timeout recovery and logout cleanup', asyn
   const encrypted = new Uint8Array(iv.length + ciphertext.length);
   encrypted.set(iv); encrypted.set(ciphertext, iv.length);
   const context = createContext({
-    document: { getElementById: element }, crypto: webcrypto, Blob, AbortSignal,
+    document: { getElementById: element }, crypto: webcrypto, Blob, AbortSignal, AbortController, DOMException, setTimeout, clearTimeout,
     TextEncoder, TextDecoder, Uint8Array,
     URL: { createObjectURL(blob) { blobs.push(blob); return 'blob:test'; }, revokeObjectURL(url) { revoked.push(url); } },
     fetch: async () => new Response(new ReadableStream({ start(controller) {
@@ -39,6 +39,29 @@ test('download progress, manual save, timeout recovery and logout cleanup', asyn
   assert.equal(element('save-zip').download, 'fixture.zip');
   assert.equal(element('save-zip').clicks, 1);
   const successfulFetch = context.fetch;
+  // Each chunk renews the idle deadline; total transfer time is unrestricted.
+  const timers = new Map();
+  let nextTimer = 0, requests = [];
+  context.setTimeout = callback => { const id = ++nextTimer; timers.set(id, callback); return id; };
+  context.clearTimeout = id => timers.delete(id);
+  context.fetch = async (path, options) => {
+    requests.push({ path, ...options });
+    return successfulFetch();
+  };
+  await runInContext('save(testFolder)', context);
+  assert.equal(requests[0].cache, 'default');
+  assert.ok(nextTimer >= 3);
+  assert.equal(timers.size, 0);
+  assert.equal(requests[0].signal.aborted, false);
+  context.fetch = async (path, { signal }) => new Response(new ReadableStream({
+    start(controller) {
+      signal.addEventListener('abort', () => controller.error(new DOMException('BodyStreamBuffer was aborted', 'AbortError')));
+      queueMicrotask(() => [...timers.values()].at(-1)());
+    }
+  }));
+  await runInContext('save(testFolder)', context);
+  assert.match(statuses.at(-1), /слишком долго/);
+  assert.equal(timers.size, 0);
   context.fetch = async () => { throw new DOMException('Timed out', 'TimeoutError'); };
   await runInContext('save(testFolder)', context);
   assert.match(statuses.at(-1), /слишком долго/);
